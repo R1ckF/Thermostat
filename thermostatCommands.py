@@ -7,11 +7,13 @@ Control the set temp of thermostat
 Bottom leads top, temp up
 Top leads bottom, temp down
 5.0 is min
+30.0 is max
+USES BOARD NUMBERING!!
 """
 
 class thermostat:
 
-    def __init__(self, topPin, bottomPin, topButton, bottomButton, temp=16.0, sleepTime=0.3):
+    def __init__(self, topPin, bottomPin, topButton, bottomButton, temp=16.0, sleepTime=0.3, bt=100):
         self.topPin = topPin
         self.bottomPin = bottomPin
         self.topButton = topButton
@@ -19,9 +21,11 @@ class thermostat:
         self.tempTarget = temp
         self.temp = 0
         self.sleepTime = sleepTime
-
+		self.min = 5.0
+		self.max = 30.0
+		
         logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
-        GPIO.setmode(GPIO.BCM)
+        GPIO.setmode(GPIO.BOARD)
         GPIO.setup(self.topPin, GPIO.OUT)
         GPIO.setup(self.bottomPin, GPIO.OUT)
         GPIO.setup(self.topButton, GPIO.IN, pull_up_down=GPIO.PUD_UP)
@@ -30,25 +34,51 @@ class thermostat:
         self.bottomOff()
         self.topOff()
         self.initialize()
+			
+	
+	@property
+    def tempTarget(self):
+        return self.__tempTarget
 
-
-    def tempUp(self):
-        if self.bottom == self.top:
-            self.changePin(self.bottomPin)
+    @tempTarget.setter
+    def tempTarget(self, tempTarget):
+        if tempTarget < self.min:
+            self.__tempTarget = self.min
+			logging.info('Target temp to low, set to %s degrees instead', str(self.min))
+        elif tempTarget > self.max:
+            self.__tempTarget = self.max
+			logging.info('Target temp to high, set to %s degrees instead', str(self.max))
         else:
-            self.changePin(self.topPin)
-        self.temp += 0.5
-        logging.info('Temperature increased to %s degrees', str(self.temp))
-        return True
+            self.__tempTarget = tempTarget
+		self.setTemp()
+		
+	
+		
+    def tempUp(self):
+		if self.temp < self.max:
+			if self.bottom == self.top:
+				self.changePin(self.bottomPin)
+			else:
+				self.changePin(self.topPin)
+			self.temp += 0.5
+			logging.info('Temperature increased to %s degrees', str(self.temp))
+			return True
+		else:
+			logging.info('Max temperature already reached')
+			return False
 
     def tempDown(self):
-        if self.top == self.bottom:
-            self.changePin(self.topPin)
-        else:
-            self.changePin(self.bottomPin)
-        self.temp -= 0.5
-        logging.info('Temperature lowered to %s degrees', str(self.temp))
-        return True
+		if self.temp > self.min
+			if self.top == self.bottom:
+				self.changePin(self.topPin)
+			else:
+				self.changePin(self.bottomPin)
+			self.temp -= 0.5
+			logging.info('Temperature lowered to %s degrees', str(self.temp))
+			return True
+		else:
+			logging.info('Minimum temperature already reached')
+			return False
     
     def setTemp(self):
         if self.temp > self.tempTarget:
@@ -77,15 +107,17 @@ class thermostat:
                 succes = True
                 break
         if succes:
-            logging.info("Buttons are recognized")
+            logging.info("Buttons are recognized, adding triggers")
+			self.addTriggers()
         else:
-            logging.warning("Buttons are not working")     
+            logging.warning("Buttons are not working")
+			raise TypeError
 
         # secondly initialize temperature
         for i in range(40):
             self.tempDown()
 
-        self.temp = 5.0
+        self.temp = self.min
 
         while self.temp < self.tempTarget:
             self.tempUp()
@@ -112,6 +144,16 @@ class thermostat:
             
         
         #Functions for internal use
+	def addTriggers(self):
+		#adding triggers for buttons
+		GPIO.add_event_detect(self.topButton, GPIO.BOTH, callback=self.controlButtons, bouncetime=bt)
+		GPIO.add_event_detect(self.bottomButton, GPIO.BOTH, callback=self.controlButtons, bouncetime=bt)
+		
+	def removeTriggers(self):
+		#remove triggers for buttons
+		GPIO.remove_event_detect(self.topButton)
+		GPIO.remove_event_detect(self.bottomButton)	
+	
     def checkButtons(self):
         # returns true when state is similar to previous state for top and bottom pin
         if self.topButtonStateOld == self.topButtonState():
