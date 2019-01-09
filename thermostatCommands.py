@@ -13,18 +13,19 @@ USES BCM NUMBERING!!
 
 class thermostat(object):
 
-    def __init__(self, topPin, bottomPin, topButton, bottomButton, LOGGER, temp=16.0, sleepTime=0.3, bt=100):
+    def __init__(self, topPin, bottomPin, topButton, bottomButton, LOGGER, temp=15.0, sleepTime=0.1, bt=100, awayTemp=12, homeTemp=18):
         self.topPin = topPin
         self.bottomPin = bottomPin
         self.topButton = topButton
         self.bottomButton  = bottomButton
-        self.temp = 16
+        self.temp = 30
         self.sleepTime = sleepTime
         self.min = 5.0
         self.max = 35.0
         self.bt = bt
+        self.awayTemp = awayTemp
+        self.homeTemp = homeTemp
         self.LOGGER = LOGGER
-        self.tempTarget = temp
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.topPin, GPIO.OUT)
         GPIO.setup(self.bottomPin, GPIO.OUT)
@@ -33,8 +34,10 @@ class thermostat(object):
         
         self.bottomOff()
         self.topOff()
-        self.initialize()
-			
+        self.lastCommandTime = time.time()
+        self.initialize(temp)
+        
+
 	
     @property
     def tempTarget(self):
@@ -56,11 +59,17 @@ class thermostat(object):
 	
 		
     def tempUp(self):
+        if time.time() - self.lastCommandTime > 3.5:
+            time.sleep(2)
+            self.changePin(self.bottomPin)
+            self.lastCommandTime=time.time()
+            logging.debug('Extra button press to activate screen')
         if self.temp < self.max:
             if self.bottom == self.top:
                 self.changePin(self.bottomPin)
             else:
                 self.changePin(self.topPin)
+            self.lastCommandTime=time.time()
             self.temp += 0.5
             logging.info('Temperature increased to %s degrees', str(self.temp))
             return True
@@ -69,17 +78,29 @@ class thermostat(object):
             return False
 
     def tempDown(self):
+        if time.time() - self.lastCommandTime > 3.5:
+            time.sleep(2)
+            self.changePin(self.bottomPin)
+            self.lastCommandTime=time.time()
+            logging.debug('Extra button press to activate screen')
         if self.temp > self.min:
             if self.top == self.bottom:
                 self.changePin(self.topPin)
             else:
                 self.changePin(self.bottomPin)
+            self.lastCommandTime=time.time()
             self.temp -= 0.5
             logging.info('Temperature lowered to %s degrees', str(self.temp))
             return True
         else:
             logging.info('Minimum temperature already reached')
             return False
+    
+    def away(self):
+        self.tempTarget = self.awayTemp
+    
+    def home(self):
+        self.tempTarget = self.homeTemp
     
     def setTemp(self):
         if self.temp > self.tempTarget:
@@ -91,7 +112,7 @@ class thermostat(object):
         else:
             logging.debug('Temperature already at correct level')
         
-    def initialize(self):
+    def initialize(self, temp):
         # first check buttons
         self.topButtonStateOld = self.topButtonState()
         self.bottomButtonStateOld = self.bottomButtonState()
@@ -100,7 +121,7 @@ class thermostat(object):
         startloop = time.time()
 
         topButton, bottomButton, success = False, False, False
-        while time.time()< startloop + 10:
+        while time.time()< startloop + 5:
             top, bottom = self.checkButtons()
             if not top:
                 topButton = True
@@ -117,19 +138,18 @@ class thermostat(object):
             
 
         # secondly initialize temperature
-        for i in range(40):
+        for i in range(80):
             self.tempDown()
 
         self.temp = self.min
 
-        while self.temp < self.tempTarget:
-            self.tempUp()
+        self.tempTarget = temp
 
         self.LOGGER.info('Initialization complete, temperature set for %s degrees', str(self.temp))
 
         return True
 
-    def controlButtons(self):
+    def controlButtons(self, channel):
         if self.topButtonStateOld == self.bottomButtonStateOld:
             top, bottom = self.checkButtons()
             if not top:

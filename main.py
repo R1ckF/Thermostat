@@ -4,28 +4,20 @@ import RPi.GPIO as GPIO
 from thermostatCommands import *
 import time
 import logging
-topPin = 2
-bottomPin = 3
-topButton = 4
-bottomButton = 5
+topPin = 13
+bottomPin = 6
+topButton = 26
+bottomButton = 19
+
+awayTemp = 12
+homeTemp = 18
+startTemp = 15
 
 LOGGER = logging.getLogger()
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 		
-
-	
-    # while True:
-    #    task = raw_input('Enter Up, Down or desired temperature: ')
-    #    if task == 'Up':
-    #        thermos.tempUp()
-    #    elif task == 'Down':
-    #        thermos.tempDown()
-    #    elif task.isdigit():
-    #        thermos.tempTarget = eval(task)
-    #    else:
-     #       print('Command not understood')
 app = Flask(__name__)
-app.config["DEBUG"] = True
+app.config["DEBUG"] = False
 
 @app.route("/", methods=["GET", "POST"])
 def mainpage():
@@ -39,10 +31,16 @@ def mainpage():
 				<form method="post" action="/Down">
 					<p><input type="submit" value="Down" /></p>
 				</form>
+				<form method="post" action="/Home">
+					<p><input type="submit" value="Home" /></p>
+				</form>
+				<form method="post" action="/Away">
+					<p><input type="submit" value="Away" /></p>
+				</form>
 			</body>
 		</html>
 	'''.format(temp=thermos.temp)
-	
+ 
 @app.route("/Up", methods=["GET", "POST"])
 def Up():
 	thermos.tempUp()
@@ -56,10 +54,16 @@ def Up():
 				<form method="post" action="/Down">
 					<p><input type="submit" value="Down" /></p>
 				</form>
+				<form method="post" action="/Home">
+					<p><input type="submit" value="Home" /></p>
+				</form>
+				<form method="post" action="/Away">
+					<p><input type="submit" value="Away" /></p>
+				</form>
 			</body>
 		</html>
 	'''.format(temp=thermos.temp)
-	
+ 
 @app.route("/Down", methods=["GET", "POST"])
 def Down():
 	thermos.tempDown()
@@ -73,12 +77,66 @@ def Down():
 				<form method="post" action="/Down">
 					<p><input type="submit" value="Down" /></p>
 				</form>
+				<form method="post" action="/Home">
+					<p><input type="submit" value="Home" /></p>
+				</form>
+				<form method="post" action="/Away">
+					<p><input type="submit" value="Away" /></p>
+				</form>
 			</body>
 		</html>
 	'''.format(temp=thermos.temp)
+ 
+@app.route("/Home", methods=["GET", "POST"])
+def Home():
+	thermos.home()
+	return '''
+		<html>
+			<body>
+				<p>Current temp: {temp}
+				<form method="post" action="/Up">
+					<p><input type="submit" value="Up" /></p>
+				</form>
+				<form method="post" action="/Down">
+					<p><input type="submit" value="Down" /></p>
+				</form>
+				<form method="post" action="/Home">
+					<p><input type="submit" value="Home" /></p>
+				</form>
+				<form method="post" action="/Away">
+					<p><input type="submit" value="Away" /></p>
+				</form>
+			</body>
+		</html>
+	'''.format(temp=thermos.temp)
+	
+@app.route("/Away", methods=["GET", "POST"])
+def Away():
+	thermos.away()
+	return '''
+		<html>
+			<body>
+				<p>Current temp: {temp}
+				<form method="post" action="/Up">
+					<p><input type="submit" value="Up" /></p>
+				</form>
+				<form method="post" action="/Down">
+					<p><input type="submit" value="Down" /></p>
+				</form>
+				<form method="post" action="/Home">
+					<p><input type="submit" value="Home" /></p>
+				</form>
+				<form method="post" action="/Away">
+					<p><input type="submit" value="Away" /></p>
+				</form>
+			</body>
+		</html>
+	'''.format(temp=thermos.temp)
+ 
+ 
         
 try:
-    thermos = thermostat(topPin, bottomPin, topButton, bottomButton, LOGGER)
+    thermos = thermostat(topPin, bottomPin, topButton, bottomButton, LOGGER, awayTemp = awayTemp, homeTemp = homeTemp, temp = startTemp)
     app.run(host='0.0.0.0',port=5000)
     
 finally:
