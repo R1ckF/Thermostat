@@ -9,7 +9,7 @@ bottomPin = 6
 topButton = 26
 bottomButton = 19
 
-OffTemp = 12
+OffTemp = 14.5
 OnTemp = 18
 startTemp = 15
 

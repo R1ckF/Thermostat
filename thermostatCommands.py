@@ -59,8 +59,9 @@ class thermostat(object):
 
 
     def tempUp(self):
-        if (time.time() - self.lastCommandTime > 3.5) and (time.time() - self.lastCommandTime < 4.5):
-            time.sleep(2)
+        if (time.time() - self.lastCommandTime > 3.5):
+            if (time.time() - self.lastCommandTime < 4.5):
+                time.sleep(2)
             self.changePin(self.bottomPin)
             self.lastCommandTime=time.time()
             logging.debug('Extra button press to activate screen')
@@ -78,8 +79,9 @@ class thermostat(object):
             return False
 
     def tempDown(self):
-        if (time.time() - self.lastCommandTime > 3.5) and (time.time() - self.lastCommandTime < 4.5):
-            time.sleep(2)
+        if (time.time() - self.lastCommandTime > 3.5):
+            if (time.time() - self.lastCommandTime < 4.5):
+                time.sleep(2)
             self.changePin(self.bottomPin)
             self.lastCommandTime=time.time()
             logging.debug('Extra button press to activate screen')
@@ -115,6 +117,7 @@ class thermostat(object):
     def reset(self):
         saveTemp = self.temp
         self.LOGGER.info('Resetting thermostat to avoid drift')
+        self.temp = 35
         for i in range(80):
             self.tempDown
 
