@@ -9,13 +9,13 @@ bottomPin = 6
 topButton = 26
 bottomButton = 19
 
-awayTemp = 12
-homeTemp = 18
+OffTemp = 12
+OnTemp = 18
 startTemp = 15
 
 LOGGER = logging.getLogger()
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
-		
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG, filename='debug.log')
+
 app = Flask(__name__)
 app.config["DEBUG"] = False
 
@@ -31,16 +31,19 @@ def mainpage():
 				<form method="post" action="/Down">
 					<p><input type="submit" value="Down" /></p>
 				</form>
-				<form method="post" action="/Home">
-					<p><input type="submit" value="Home" /></p>
+				<form method="post" action="/On">
+					<p><input type="submit" value="On" /></p>
 				</form>
-				<form method="post" action="/Away">
-					<p><input type="submit" value="Away" /></p>
+				<form method="post" action="/Off">
+					<p><input type="submit" value="Off" /></p>
+				</form>
+				<form method="post" action="/Reset">
+					<p><input type="submit" value="Reset" /></p>
 				</form>
 			</body>
 		</html>
 	'''.format(temp=thermos.temp)
- 
+
 @app.route("/Up", methods=["GET", "POST"])
 def Up():
 	thermos.tempUp()
@@ -54,16 +57,19 @@ def Up():
 				<form method="post" action="/Down">
 					<p><input type="submit" value="Down" /></p>
 				</form>
-				<form method="post" action="/Home">
-					<p><input type="submit" value="Home" /></p>
+				<form method="post" action="/On">
+					<p><input type="submit" value="On" /></p>
 				</form>
-				<form method="post" action="/Away">
-					<p><input type="submit" value="Away" /></p>
+				<form method="post" action="/Off">
+					<p><input type="submit" value="Off" /></p>
+				</form>
+				<form method="post" action="/Reset">
+					<p><input type="submit" value="Reset" /></p>
 				</form>
 			</body>
 		</html>
 	'''.format(temp=thermos.temp)
- 
+
 @app.route("/Down", methods=["GET", "POST"])
 def Down():
 	thermos.tempDown()
@@ -77,19 +83,22 @@ def Down():
 				<form method="post" action="/Down">
 					<p><input type="submit" value="Down" /></p>
 				</form>
-				<form method="post" action="/Home">
-					<p><input type="submit" value="Home" /></p>
+				<form method="post" action="/On">
+					<p><input type="submit" value="On" /></p>
 				</form>
-				<form method="post" action="/Away">
-					<p><input type="submit" value="Away" /></p>
+				<form method="post" action="/Off">
+					<p><input type="submit" value="Off" /></p>
+				</form>
+				<form method="post" action="/Reset">
+					<p><input type="submit" value="Reset" /></p>
 				</form>
 			</body>
 		</html>
 	'''.format(temp=thermos.temp)
- 
-@app.route("/Home", methods=["GET", "POST"])
-def Home():
-	thermos.home()
+
+@app.route("/On", methods=["GET", "POST"])
+def On():
+	thermos.on()
 	return '''
 		<html>
 			<body>
@@ -100,19 +109,22 @@ def Home():
 				<form method="post" action="/Down">
 					<p><input type="submit" value="Down" /></p>
 				</form>
-				<form method="post" action="/Home">
-					<p><input type="submit" value="Home" /></p>
+				<form method="post" action="/On">
+					<p><input type="submit" value="On" /></p>
 				</form>
-				<form method="post" action="/Away">
-					<p><input type="submit" value="Away" /></p>
+				<form method="post" action="/Off">
+					<p><input type="submit" value="Off" /></p>
+				</form>
+				<form method="post" action="/Reset">
+					<p><input type="submit" value="Reset" /></p>
 				</form>
 			</body>
 		</html>
 	'''.format(temp=thermos.temp)
-	
-@app.route("/Away", methods=["GET", "POST"])
-def Away():
-	thermos.away()
+
+@app.route("/Off", methods=["GET", "POST"])
+def Off():
+	thermos.off()
 	return '''
 		<html>
 			<body>
@@ -123,29 +135,58 @@ def Away():
 				<form method="post" action="/Down">
 					<p><input type="submit" value="Down" /></p>
 				</form>
-				<form method="post" action="/Home">
-					<p><input type="submit" value="Home" /></p>
+				<form method="post" action="/On">
+					<p><input type="submit" value="On" /></p>
 				</form>
-				<form method="post" action="/Away">
-					<p><input type="submit" value="Away" /></p>
+				<form method="post" action="/Off">
+					<p><input type="submit" value="Off" /></p>
+				</form>
+				<form method="post" action="/Reset">
+					<p><input type="submit" value="Reset" /></p>
 				</form>
 			</body>
 		</html>
 	'''.format(temp=thermos.temp)
- 
- 
-        
+
+@app.route("/Reset", methods=["GET", "POST"])
+def Reset():
+	thermos.reset()
+	return '''
+		<html>
+			<body>
+				<p>Current temp: {temp}
+				<form method="post" action="/Up">
+					<p><input type="submit" value="Up" /></p>
+				</form>
+				<form method="post" action="/Down">
+					<p><input type="submit" value="Down" /></p>
+				</form>
+				<form method="post" action="/On">
+					<p><input type="submit" value="On" /></p>
+				</form>
+				<form method="post" action="/Off">
+					<p><input type="submit" value="Off" /></p>
+				</form>
+				<form method="post" action="/Reset">
+					<p><input type="submit" value="Reset" /></p>
+				</form>
+			</body>
+		</html>
+	'''.format(temp=thermos.temp)
+
+
+
 try:
-    thermos = thermostat(topPin, bottomPin, topButton, bottomButton, LOGGER, awayTemp = awayTemp, homeTemp = homeTemp, temp = startTemp)
+    thermos = thermostat(topPin, bottomPin, topButton, bottomButton, LOGGER, offTemp = OffTemp, onTemp = OnTemp, temp = startTemp)
     app.run(host='0.0.0.0',port=5000)
-    
+
 finally:
     print('Error occurred, clean GPIOs')
     GPIO.cleanup()
 
 
 #
-                
+
 # class fakeThermos:
 	# def __init__(self, temp):
 		# self.temp=temp
