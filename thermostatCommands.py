@@ -18,7 +18,7 @@ class thermostat(object):
         self.bottomPin = bottomPin
         self.topButton = topButton
         self.bottomButton  = bottomButton
-        self.temp = None
+        self.temp = 35.0
         self.sleepTime = sleepTime
         self.min = 5.0
         self.max = 35.0
@@ -117,9 +117,9 @@ class thermostat(object):
     def reset(self):
         saveTemp = self.temp
         self.LOGGER.info('Resetting thermostat to avoid drift')
-        self.temp = 35
+        self.temp = 35.0
         for i in range(80):
-            self.tempDown
+            self.tempDown()
 
         self.temp = self.min
         self.tempTarget = saveTemp
