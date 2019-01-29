@@ -1,7 +1,7 @@
 import RPi.GPIO as GPIO
 import logging
 import time
-
+import threading
 """
 Control the set temp of thermostat
 Bottom leads top, temp up
@@ -26,6 +26,7 @@ class thermostat(object):
         self.offTemp = offTemp
         self.onTemp = onTemp
         self.LOGGER = LOGGER
+        self.status = 1
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.topPin, GPIO.OUT)
         GPIO.setup(self.bottomPin, GPIO.OUT)
@@ -100,9 +101,11 @@ class thermostat(object):
 
     def off(self):
         self.tempTarget = self.offTemp
+        self.status = 0
 
     def on(self):
         self.tempTarget = self.onTemp
+        self.status = 0
 
     def setTemp(self):
         if self.temp > self.tempTarget:
@@ -113,14 +116,14 @@ class thermostat(object):
                 self.tempUp()
         else:
             logging.debug('Temperature already at correct level')
+        self.status = 1
 
     def reset(self):
         saveTemp = self.temp
         self.LOGGER.info('Resetting thermostat to avoid drift')
         self.temp = 35.0
-        for i in range(80):
+        for i in range(50):
             self.tempDown()
-
         self.temp = self.min
         self.tempTarget = saveTemp
         self.LOGGER.info('Reset complete, temperature set for %s degrees', str(self.temp))
@@ -134,21 +137,21 @@ class thermostat(object):
         self.LOGGER.info('Turn thermostat 2 clicks to check buttons are working')
         startloop = time.time()
 
-        topButton, bottomButton, success = False, False, False
-        while time.time()< startloop + 5:
-            top, bottom = self.checkButtons()
-            if not top:
-                topButton = True
-            if not bottom:
-                bottomButton = True
-            if topButton and bottomButton:
-                success = True
-                break
-        if success:
-            self.LOGGER.info("Buttons are recognized, adding triggers")
-            self.addTriggers()
-        else:
-            self.LOGGER.warning("Buttons are not working, Testmode is activated")
+        # topButton, bottomButton, success = False, False, False
+        # while time.time()< startloop + 5:
+        #     top, bottom = self.checkButtons()
+        #     if not top:
+        #         topButton = True
+        #     if not bottom:
+        #         bottomButton = True
+        #     if topButton and bottomButton:
+        #         success = True
+        #         break
+        # if success:
+        #     self.LOGGER.info("Buttons are recognized, adding triggers")
+        #     self.addTriggers()
+        # else:
+        #     self.LOGGER.warning("Buttons are not working, Testmode is activated")
 
 
         # secondly initialize temperature
@@ -160,8 +163,47 @@ class thermostat(object):
         self.tempTarget = temp
 
         self.LOGGER.info('Initialization complete, temperature set for %s degrees', str(self.temp))
-
+        reset = threading.Thread(target=self.resetEvent)
+        reset.daemon = True
+        reset.start()
+        off = threading.Thread(target=self.offEvent)
+        off.daemon = True
+        off.start()
         return True
+
+
+    def resetEvent(self):
+        while True:
+            time.sleep(60*60)
+            self.reset()
+
+    def offEvent(self):
+
+        while True:
+            time.sleep(60)
+            h = int(time.strftime("%H"))
+            m = int(time.strftime("%M"))
+            if h >= 21 and m >= 0 and self.status==0 :
+                self.off()
+
+    def createEvent(self, event, h, m):
+        if event == "on":
+            function = self.on
+        elif event == "off":
+            function =  self.off
+
+        def tempEvent():
+            run = True
+            while run:
+                time.sleep(60)
+                clockH = int(time.strftime("%H"))
+                clockM = int(time.strftime("%M"))
+                if clockH >= h and clockM >= m:
+                    function()
+                    run = False
+        thread = threading.Thread(target=tempEvent)
+        thread.daemon = True
+        thread.start()
 
     def controlButtons(self, channel):
         if self.topButtonStateOld == self.bottomButtonStateOld:

@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 
 import RPi.GPIO as GPIO
 from thermostatCommands import *
@@ -14,7 +14,7 @@ OnTemp = 18
 startTemp = 15
 
 LOGGER = logging.getLogger()
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG, filename='debug.log')
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)#, filename='debug.log')
 
 app = Flask(__name__)
 app.config["DEBUG"] = False
@@ -174,7 +174,20 @@ def Reset():
 		</html>
 	'''.format(temp=thermos.temp)
 
+@app.route('/temp', methods=['GET'])
+def testData():
+	return jsonify(thermos.temp)
 
+@app.route('/set', methods=['POST'])
+def setData():
+	temp = (request.form.get('temp'))
+	if temp == "On":
+		thermos.on()
+	elif temp == "Off":
+		thermos.off()
+	else:
+		thermos.tempTarget = float(temp)
+	return jsonify(thermos.temp)
 
 try:
     thermos = thermostat(topPin, bottomPin, topButton, bottomButton, LOGGER, offTemp = OffTemp, onTemp = OnTemp, temp = startTemp)
