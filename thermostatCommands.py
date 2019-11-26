@@ -13,7 +13,7 @@ USES BCM NUMBERING!!
 
 class thermostat(object):
 
-    def __init__(self, topPin, bottomPin, topButton, bottomButton, LOGGER, temp=15.0, sleepTime=0.1, bt=100, offTemp=14.5, onTemp=18):
+    def __init__(self, topPin, bottomPin, topButton, bottomButton, LOGGER, temp=15.0, sleepTime=0.1, bt=100, offTemp=15.5, onTemp=18.5):
         self.topPin = topPin
         self.bottomPin = bottomPin
         self.topButton = topButton
@@ -26,7 +26,7 @@ class thermostat(object):
         self.offTemp = offTemp
         self.onTemp = onTemp
         self.LOGGER = LOGGER
-        self.status = 1
+        self.events = True
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.topPin, GPIO.OUT)
         GPIO.setup(self.bottomPin, GPIO.OUT)
@@ -101,11 +101,11 @@ class thermostat(object):
 
     def off(self):
         self.tempTarget = self.offTemp
-        self.status = 0
+        self.events = False
 
     def on(self):
         self.tempTarget = self.onTemp
-        self.status = 0
+        self.events = True
 
     def setTemp(self):
         if self.temp > self.tempTarget:
@@ -116,7 +116,7 @@ class thermostat(object):
                 self.tempUp()
         else:
             logging.debug('Temperature already at correct level')
-        self.status = 1
+        self.status = True
 
     def reset(self):
         saveTemp = self.temp
@@ -183,7 +183,7 @@ class thermostat(object):
             time.sleep(60)
             h = int(time.strftime("%H"))
             m = int(time.strftime("%M"))
-            if h >= 21 and m >= 0 and self.status==0 :
+            if h >= 21 and m >= 0 and self.events==True :
                 self.off()
 
     def createEvent(self, event, h, m):
